@@ -3,6 +3,12 @@
   "private": true,
   "version": "0.4.1",
   "type": "module",
+  "author": "Hasan Bicer (Nevora)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BOZYILDIZ/macadam.git"
+  },
   "scripts": {
     "tauri": "tauri",
     "dev": "tauri dev",

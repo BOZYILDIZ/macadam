@@ -1,8 +1,10 @@
 [package]
 name = "macadam"
 version = "0.4.1"
-description = "A Tauri App"
-authors = ["you"]
+description = "Nettoie et optimise ton Mac : rangement de fichiers, caches, doublons, espace disque, démarrage"
+authors = ["Hasan Bicer <hasan@netzinformatique.fr>"]
+license = "MIT"
+repository = "https://github.com/BOZYILDIZ/macadam"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
