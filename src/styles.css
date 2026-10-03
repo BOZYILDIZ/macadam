@@ -48,6 +48,15 @@
   }
 }
 
+/* Without this, any element with both a class that sets its own `display`
+   (e.g. `.list { display: flex }`) and the `hidden` attribute stays
+   visible: the UA's `[hidden] { display: none }` rule and a one-class
+   author rule have equal specificity, so the later one in the cascade
+   wins — not necessarily `hidden`. This makes `hidden` always win. */
+[hidden] {
+  display: none !important;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -95,7 +104,8 @@ body {
   -webkit-app-region: no-drag;
 }
 
-.tab {
+.tab,
+.side-icon-btn {
   position: relative;
   width: 46px;
   height: 46px;
@@ -111,17 +121,20 @@ body {
   transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
 }
 
-.tab svg {
+.tab svg,
+.side-icon-btn svg {
   width: 21px;
   height: 21px;
 }
 
-.tab:hover {
+.tab:hover,
+.side-icon-btn:hover {
   background: var(--surface-alt);
   color: var(--text);
 }
 
-.tab:active {
+.tab:active,
+.side-icon-btn:active {
   transform: scale(0.94);
 }
 
@@ -131,7 +144,8 @@ body {
   box-shadow: 0 4px 14px -4px rgba(10, 132, 255, 0.55);
 }
 
-.tab::after {
+.tab::after,
+.side-icon-btn::after {
   content: attr(data-label);
   position: absolute;
   left: calc(100% + 10px);
@@ -148,9 +162,12 @@ body {
   pointer-events: none;
   transition: opacity 0.12s ease, transform 0.12s ease;
   z-index: 20;
+  max-width: 220px;
+  text-align: left;
 }
 
-.tab:hover::after {
+.tab:hover::after,
+.side-icon-btn:hover::after {
   opacity: 1;
   transform: translateY(-50%) translateX(0);
 }

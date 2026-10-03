@@ -1,6 +1,6 @@
 # Macadam
 
-![version](https://img.shields.io/badge/version-0.4.0-0a84ff)
+![version](https://img.shields.io/badge/version-0.4.1-0a84ff)
 
 Macadam est une application open source pour **nettoyer et organiser ton Mac**, sans jamais rien supprimer définitivement : tout passe par la Corbeille.
 
@@ -16,6 +16,7 @@ Construite avec [Tauri](https://tauri.app/) (Rust + interface web légère) — 
 - **Applications inutilisées** — repère les apps de `/Applications` jamais ouvertes ou ouvertes depuis longtemps (date fournie par Spotlight/Launch Services), triées des moins utilisées aux plus utilisées.
 
 - **Mise à jour automatique** — Macadam vérifie discrètement s'il existe une nouvelle version à chaque lancement ; si oui, une bannière propose de l'installer en un clic (ou "Plus tard"). Rien de bloquant, aucune vérification visible si tout est déjà à jour.
+- **Accès complet au disque** — un bouton dans la barre latérale ouvre directement Réglages Système > Confidentialité et sécurité > Accès complet au disque, pour éviter les multiples popups d'autorisation de macOS (un par dossier protégé : Bureau, Documents, Téléchargements…).
 
 Toutes les suppressions envoient les fichiers à la **Corbeille macOS**, jamais de suppression définitive — tu peux toujours annuler.
 
@@ -49,6 +50,10 @@ Macadam est open source et les contributions sont les bienvenues ! Tu peux :
 Avant de soumettre une PR, vérifie que `cargo check` passe côté backend et que l'app se lance correctement avec `npm run dev`. Pas besoin d'être expert Rust ou Tauri pour contribuer — les petites améliorations (UI, traductions, nouvelles catégories de tri, idées de fonctionnalités) sont tout aussi bienvenues que les grosses.
 
 ## Changelog
+
+### v0.4.1
+- **Correction :** un bug CSS faisait que la vue Liste de l'espace disque restait visible sous le Treemap une fois consultée (`.list { display: flex }` avait la même priorité que la règle masquant `hidden`, et gagnait le conflit de cascade). Règle `[hidden] { display: none !important }` ajoutée pour que `hidden` l'emporte toujours.
+- **Nouveau :** bouton "Accès complet au disque" dans la barre latérale — ouvre directement le bon panneau de Réglages Système pour éviter les popups d'autorisation répétés de macOS, plus une astuce affichée une fois au premier lancement.
 
 ### v0.4.0
 - **Nouveau :** mise à jour automatique (plugin officiel Tauri updater, signatures minisign). Vérification silencieuse au démarrage ; une bannière discrète propose "Mettre à jour" ou "Plus tard" si une nouvelle version existe — jamais de popup bloquante.

@@ -33,6 +33,9 @@
         </button>
 
         <div class="sidebar-spacer"></div>
+        <button class="side-icon-btn" id="fda-btn" data-label="Autoriser l'accès complet au disque">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        </button>
         <div class="version" id="app-version"></div>
       </nav>
 
@@ -42,6 +45,13 @@
         <div class="update-banner-actions">
           <button class="btn btn-sm" id="update-dismiss">Plus tard</button>
           <button class="btn btn-primary btn-sm" id="update-install">Mettre à jour</button>
+        </div>
+      </div>
+      <div class="update-banner" id="fda-banner" hidden>
+        <span>Astuce : macOS va demander une autorisation par dossier protégé (Bureau, Documents…). Pour n'avoir à l'accorder qu'une seule fois, donne à Macadam l'accès complet au disque.</span>
+        <div class="update-banner-actions">
+          <button class="btn btn-sm" id="fda-banner-dismiss">Compris</button>
+          <button class="btn btn-primary btn-sm" id="fda-banner-open">Ouvrir les Réglages</button>
         </div>
       </div>
       <main class="content">

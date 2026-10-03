@@ -3,6 +3,7 @@ const { open } = window.__TAURI__.dialog;
 const { getVersion } = window.__TAURI__.app;
 const { check: checkUpdate } = window.__TAURI__.updater;
 const { relaunch } = window.__TAURI__.process;
+const { openUrl } = window.__TAURI__.opener;
 
 const statusbar = document.getElementById("statusbar");
 function setStatus(msg) {
@@ -57,6 +58,43 @@ async function installUpdate() {
 }
 
 setTimeout(checkForUpdate, 1500);
+
+// ---------- Accès complet au disque ----------
+// macOS prompts once per protected folder category (Bureau, Documents,
+// Téléchargements…) the first time an app touches each one — picking a
+// broad folder to scan can trigger a dozen of these in a row. Granting
+// Full Disk Access once in System Settings skips all of them permanently.
+const FDA_URL = "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles";
+
+document.getElementById("fda-btn").addEventListener("click", () => {
+  openUrl(FDA_URL).catch(() => {});
+});
+
+const fdaBanner = document.getElementById("fda-banner");
+const FDA_HINT_KEY = "macadam_fda_hint_dismissed";
+
+try {
+  if (!localStorage.getItem(FDA_HINT_KEY)) {
+    fdaBanner.hidden = false;
+  }
+} catch (e) {
+  // Private window / blocked storage — just skip the one-time hint.
+}
+
+function dismissFdaHint() {
+  fdaBanner.hidden = true;
+  try {
+    localStorage.setItem(FDA_HINT_KEY, "1");
+  } catch (e) {
+    // Non-fatal — worst case the hint reappears next launch.
+  }
+}
+
+document.getElementById("fda-banner-dismiss").addEventListener("click", dismissFdaHint);
+document.getElementById("fda-banner-open").addEventListener("click", () => {
+  openUrl(FDA_URL).catch(() => {});
+  dismissFdaHint();
+});
 
 // Disables `button` and swaps its label to `busyLabel` while `fn` runs,
 // so a multi-second scan/clean can't look like a frozen click with no
