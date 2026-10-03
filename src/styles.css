@@ -180,6 +180,23 @@ body {
   padding: 24px 28px 12px;
 }
 
+.update-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.update-banner-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .panel {
   display: none;
   max-width: 760px;

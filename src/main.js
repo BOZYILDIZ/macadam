@@ -1,6 +1,8 @@
 const { invoke } = window.__TAURI__.core;
 const { open } = window.__TAURI__.dialog;
 const { getVersion } = window.__TAURI__.app;
+const { check: checkUpdate } = window.__TAURI__.updater;
+const { relaunch } = window.__TAURI__.process;
 
 const statusbar = document.getElementById("statusbar");
 function setStatus(msg) {
@@ -12,6 +14,49 @@ getVersion()
     document.getElementById("app-version").textContent = `v${v}`;
   })
   .catch(() => {});
+
+// ---------- Mise à jour automatique ----------
+// Checks silently in the background; the banner only ever appears when
+// there's actually something to offer, and "Plus tard" just dismisses it
+// for this session — never a blocking dialog, never nagging.
+const updateBanner = document.getElementById("update-banner");
+const updateBannerText = document.getElementById("update-banner-text");
+const updateInstallBtn = document.getElementById("update-install");
+const updateDismissBtn = document.getElementById("update-dismiss");
+let pendingUpdate = null;
+
+async function checkForUpdate() {
+  try {
+    const update = await checkUpdate();
+    if (update?.available) {
+      pendingUpdate = update;
+      updateBannerText.textContent = `Nouvelle version disponible : v${update.version}`;
+      updateBanner.hidden = false;
+    }
+  } catch (e) {
+    // Offline, GitHub unreachable, etc. — never surface this to the user.
+  }
+}
+
+updateDismissBtn.addEventListener("click", () => {
+  updateBanner.hidden = true;
+});
+
+updateInstallBtn.addEventListener("click", () =>
+  withBusy(updateInstallBtn, "Téléchargement…", installUpdate)
+);
+
+async function installUpdate() {
+  if (!pendingUpdate) return;
+  try {
+    await pendingUpdate.downloadAndInstall();
+    await relaunch();
+  } catch (e) {
+    updateBannerText.textContent = `Erreur lors de la mise à jour : ${e}`;
+  }
+}
+
+setTimeout(checkForUpdate, 1500);
 
 // Disables `button` and swaps its label to `busyLabel` while `fn` runs,
 // so a multi-second scan/clean can't look like a frozen click with no
