@@ -36,6 +36,16 @@ npm run build   # build l'app .app/.dmg
 - **Backend** : Rust (`src-tauri/`) — commandes Tauri pour le système de fichiers, le hashing et le déplacement vers la Corbeille.
 - **Frontend** : HTML/CSS/JS vanilla (`src/`) — aucune dépendance front, pas de framework.
 
+## Contribuer
+
+Macadam est open source et les contributions sont les bienvenues ! Tu peux :
+
+- 🐛 **Signaler un bug** ou proposer une idée via une [issue GitHub](https://github.com/BOZYILDIZ/macadam/issues)
+- 🔧 **Proposer une amélioration** via une pull request (fork → branche → PR)
+- ⭐ Mettre une étoile au repo si l'outil t'est utile
+
+Avant de soumettre une PR, vérifie que `cargo check` passe côté backend et que l'app se lance correctement avec `npm run dev`. Pas besoin d'être expert Rust ou Tauri pour contribuer — les petites améliorations (UI, traductions, nouvelles catégories de tri, idées de fonctionnalités) sont tout aussi bienvenues que les grosses.
+
 ## Changelog
 
 ### v0.2.0
