@@ -1,3 +1,4 @@
+use crate::util::{dir_size, is_accessible};
 use serde::Serialize;
 use std::fs;
 use std::path::PathBuf;
@@ -9,20 +10,6 @@ pub struct CacheEntry {
     pub path: String,
     pub size_bytes: u64,
     pub exists: bool,
-}
-
-fn dir_size(path: &PathBuf) -> u64 {
-    if !path.exists() {
-        return 0;
-    }
-    walkdir::WalkDir::new(path)
-        .into_iter()
-        .filter_entry(|e| !e.file_type().is_dir() || is_accessible(e.path()))
-        .filter_map(|e| e.ok())
-        .filter(|e| e.file_type().is_file())
-        .filter_map(|e| e.metadata().ok())
-        .map(|m| m.len())
-        .sum()
 }
 
 fn known_locations() -> Vec<(&'static str, &'static str, PathBuf)> {
@@ -55,20 +42,6 @@ fn known_locations() -> Vec<(&'static str, &'static str, PathBuf)> {
         ),
         ("generic_cache", "Cache générique (~/.cache)", home.join(".cache")),
     ]
-}
-
-/// Some subfolders under locations like ~/Library/Caches belong to macOS
-/// system services (Safari, CloudKit, HomeKit, Find My…) and are
-/// TCC-protected: a normal app can't read or trash them, and trying can
-/// stall waiting on a permission check that never resolves. We probe
-/// read access up front and skip these entirely rather than attempting
-/// anything destructive on them.
-fn is_accessible(path: &std::path::Path) -> bool {
-    if path.is_dir() {
-        fs::read_dir(path).is_ok()
-    } else {
-        fs::metadata(path).is_ok()
-    }
 }
 
 fn dirs_home() -> PathBuf {

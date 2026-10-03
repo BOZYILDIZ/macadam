@@ -25,6 +25,12 @@
         <button class="tab" data-tab="disk" data-label="Espace disque">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l6.4 3.7"/></svg>
         </button>
+        <button class="tab" data-tab="startup" data-label="Démarrage">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v8"/><path d="M6.3 6.3a9 9 0 1 0 11.4 0"/></svg>
+        </button>
+        <button class="tab" data-tab="apps" data-label="Applications inutilisées">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"/></svg>
+        </button>
 
         <div class="sidebar-spacer"></div>
         <div class="version" id="app-version"></div>
@@ -102,7 +108,66 @@
           </div>
 
           <div class="breadcrumb" id="disk-breadcrumb"></div>
-          <div class="list" id="disk-list"></div>
+
+          <div class="view-toggle" id="disk-view-toggle">
+            <button class="active" data-view="treemap">Treemap</button>
+            <button data-view="list">Liste</button>
+          </div>
+
+          <div class="viz-legend">
+            <span><i style="background:var(--viz-folder)"></i>Dossier</span>
+            <span><i style="background:var(--viz-media)"></i>Médias (images, audio, vidéo)</span>
+            <span><i style="background:var(--viz-docs)"></i>Documents (PDF, texte, tableurs, code)</span>
+            <span><i style="background:var(--viz-other)"></i>Autres</span>
+          </div>
+
+          <div class="treemap" id="disk-treemap"></div>
+          <div class="list" id="disk-list" hidden></div>
+        </section>
+
+        <!-- DÉMARRAGE -->
+        <section class="panel" id="panel-startup">
+          <div class="panel-header">
+            <h1>Applications au démarrage</h1>
+            <p class="subtitle">Gère ce qui se lance automatiquement à l'ouverture de session, pour un démarrage plus rapide.</p>
+          </div>
+
+          <div class="subsection">
+            <div class="subsection-header">
+              <h2>Applications (Login Items)</h2>
+              <button class="btn btn-secondary btn-sm" id="login-items-refresh">Actualiser</button>
+            </div>
+            <p class="hint">Retirer une app d'ici ne la désinstalle pas, elle ne s'ouvrira simplement plus toute seule à la connexion. Cette action n'est pas réversible depuis Macadam (tu peux la rajouter via Réglages Système).</p>
+            <div class="list" id="login-items-list"></div>
+            <div class="result" id="login-items-result"></div>
+          </div>
+
+          <div class="subsection">
+            <div class="subsection-header">
+              <h2>Agents en arrière-plan (LaunchAgents)</h2>
+              <button class="btn btn-secondary btn-sm" id="launch-agents-refresh">Actualiser</button>
+            </div>
+            <p class="hint">Processus d'arrière-plan installés par des applications (mises à jour, synchronisation…). Désactiver est réversible à tout moment.</p>
+            <div class="list" id="launch-agents-list"></div>
+            <div class="result" id="launch-agents-result"></div>
+          </div>
+        </section>
+
+        <!-- APPLICATIONS INUTILISÉES -->
+        <section class="panel" id="panel-apps">
+          <div class="panel-header">
+            <h1>Applications inutilisées</h1>
+            <p class="subtitle">Applications de /Applications jamais ouvertes ou ouvertes depuis longtemps, triées des moins utilisées aux plus utilisées.</p>
+          </div>
+
+          <div class="actions">
+            <button class="btn btn-primary" id="apps-scan">Scanner</button>
+          </div>
+
+          <p class="hint">Supprimer une app l'envoie à la Corbeille (réversible), mais ses fichiers de support (réglages, caches) ne sont pas nettoyés avec.</p>
+
+          <div class="list" id="apps-list"></div>
+          <div class="result" id="apps-result"></div>
         </section>
       </main>
 

@@ -1,6 +1,6 @@
 # Macadam
 
-![version](https://img.shields.io/badge/version-0.1.1-0a84ff)
+![version](https://img.shields.io/badge/version-0.2.0-0a84ff)
 
 Macadam est une application open source pour **nettoyer et organiser ton Mac**, sans jamais rien supprimer définitivement : tout passe par la Corbeille.
 
@@ -11,7 +11,9 @@ Construite avec [Tauri](https://tauri.app/) (Rust + interface web légère) — 
 - **Rangement de fichiers** — trie les fichiers d'un dossier (ex: `Téléchargements`) dans des sous-dossiers par type : Images, PDF, Documents, Tableurs, Archives, Installateurs, Audio, Vidéos, Code, Autres.
 - **Nettoyage de caches** — scanne les emplacements de cache courants (`~/Library/Caches`, `~/Library/Logs`, Xcode DerivedData, cache npm, etc.) et libère l'espace qu'ils occupent.
 - **Détection de doublons** — trouve les fichiers identiques (par contenu, via hash Blake3) dans un dossier, récursivement.
-- **Analyse d'espace disque** — explore un dossier niveau par niveau pour voir ce qui prend le plus de place.
+- **Analyse d'espace disque** — treemap interactif (avec vue liste alternative) pour repérer d'un coup d'œil ce qui prend le plus de place, dossier par dossier.
+- **Applications au démarrage** — gère les Login Items classiques et les LaunchAgents (processus d'arrière-plan) pour accélérer l'ouverture de session.
+- **Applications inutilisées** — repère les apps de `/Applications` jamais ouvertes ou ouvertes depuis longtemps (date fournie par Spotlight/Launch Services), triées des moins utilisées aux plus utilisées.
 
 Toutes les suppressions envoient les fichiers à la **Corbeille macOS**, jamais de suppression définitive — tu peux toujours annuler.
 
@@ -35,6 +37,12 @@ npm run build   # build l'app .app/.dmg
 - **Frontend** : HTML/CSS/JS vanilla (`src/`) — aucune dépendance front, pas de framework.
 
 ## Changelog
+
+### v0.2.0
+- **Nouveau :** analyse d'espace disque en treemap (en plus de la liste), avec palette de couleurs validée accessibilité (daltonisme, contraste).
+- **Nouveau :** onglet "Démarrage" — liste et gère les Login Items classiques (via System Events) et les LaunchAgents utilisateur (`~/Library/LaunchAgents`, activer/désactiver réversible) ; les agents système (`/Library/LaunchAgents`) sont affichés en lecture seule.
+- **Nouveau :** onglet "Applications inutilisées" — liste les apps de `/Applications` et `~/Applications` triées par date de dernière ouverture (Spotlight), avec suppression vers la Corbeille.
+- Refactor interne : logique de calcul de taille de dossier mutualisée (`util.rs`) entre les modules cache/espace disque/applications.
 
 ### v0.1.1
 - Correction : le nettoyage de caches pouvait rester bloqué indéfiniment sur des dossiers système protégés par macOS (Safari, CloudKit, HomeKit, Find My…). Ces éléments sont maintenant détectés et ignorés automatiquement, avec un message clair listant ce qui a été sauté.

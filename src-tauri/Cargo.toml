@@ -1,6 +1,6 @@
 [package]
 name = "macadam"
-version = "0.1.1"
+version = "0.2.0"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
@@ -26,6 +26,8 @@ tauri-plugin-dialog = "2.8.1"
 trash = "5.2.9"
 blake3 = "1.8.7"
 walkdir = "2.5.0"
+plist = "1.10.1"
+chrono = "0.4.45"
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

@@ -48,6 +48,11 @@ document.querySelectorAll(".tab").forEach((tab) => {
     document.querySelectorAll(".panel").forEach((p) => p.classList.remove("active"));
     tab.classList.add("active");
     document.getElementById(`panel-${tab.dataset.tab}`).classList.add("active");
+    // The treemap is laid out from the container's pixel size, which is
+    // 0x0 while its panel is display:none — re-measure now that it's visible.
+    if (tab.dataset.tab === "disk" && diskView === "treemap" && currentDiskEntries.length > 0) {
+      requestAnimationFrame(() => renderDiskTreemap(currentDiskEntries));
+    }
   });
 });
 
@@ -300,8 +305,44 @@ async function dupDelete() {
 const diskPathEl = document.getElementById("disk-path");
 const diskPickBtn = document.getElementById("disk-pick");
 const diskListEl = document.getElementById("disk-list");
+const diskTreemapEl = document.getElementById("disk-treemap");
 const diskBreadcrumbEl = document.getElementById("disk-breadcrumb");
+const diskViewToggle = document.getElementById("disk-view-toggle");
 let diskHistory = [];
+let diskView = "treemap";
+let currentDiskEntries = [];
+
+// Three validated categorical slots (see dataviz skill) plus a neutral,
+// non-series color for folders — kept in sync with the Rangement
+// categories so the same file type always reads the same color.
+const MEDIA_EXT = new Set(["jpg","jpeg","png","webp","gif","bmp","tiff","heic","svg","mp3","wav","m4a","aac","flac","mp4","mov","avi","mkv","webm"]);
+const DOCS_EXT = new Set(["pdf","doc","docx","odt","rtf","txt","md","html","htm","xlsx","xls","csv","py","json","js","ts","rs","go","java","c","cpp","sh"]);
+
+function diskBucket(entry) {
+  if (entry.is_dir) return "folder";
+  const ext = entry.name.includes(".") ? entry.name.split(".").pop().toLowerCase() : "";
+  if (MEDIA_EXT.has(ext)) return "media";
+  if (DOCS_EXT.has(ext)) return "docs";
+  return "other";
+}
+
+const BUCKET_COLOR_VAR = {
+  folder: "--viz-folder",
+  media: "--viz-media",
+  docs: "--viz-docs",
+  other: "--viz-other",
+};
+
+diskViewToggle.querySelectorAll("button").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    diskViewToggle.querySelectorAll("button").forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    diskView = btn.dataset.view;
+    diskListEl.hidden = diskView !== "list";
+    diskTreemapEl.hidden = diskView !== "treemap";
+    renderCurrentView();
+  });
+});
 
 diskPickBtn.addEventListener("click", async () => {
   const selected = await open({ directory: true, multiple: false });
@@ -313,16 +354,25 @@ diskPickBtn.addEventListener("click", async () => {
 
 async function loadDiskUsage(folder) {
   setStatus("Analyse de l'espace disque…");
-  diskListEl.innerHTML = '<div class="empty-state">Analyse en cours…</div>';
+  diskTreemapEl.innerHTML = '<div class="empty-state">Analyse en cours…</div>';
+  diskListEl.innerHTML = "";
   try {
-    const entries = await invoke("analyze_disk_usage", { folder });
-    renderDiskList(entries);
+    currentDiskEntries = await invoke("analyze_disk_usage", { folder });
     renderBreadcrumb();
+    renderCurrentView();
     setStatus("Analyse terminée.");
   } catch (e) {
-    diskListEl.innerHTML = "";
-    diskListEl.textContent = `Erreur : ${e}`;
+    diskTreemapEl.innerHTML = "";
+    diskTreemapEl.textContent = `Erreur : ${e}`;
     setStatus("Erreur.");
+  }
+}
+
+function renderCurrentView() {
+  if (diskView === "treemap") {
+    renderDiskTreemap(currentDiskEntries);
+  } else {
+    renderDiskList(currentDiskEntries);
   }
 }
 
@@ -366,5 +416,329 @@ function renderDiskList(entries) {
       });
     }
     diskListEl.appendChild(row);
+  });
+}
+
+// Classic "squarify" treemap layout (Bruls, Huizing & van Wijk): lays
+// successive rows along the shorter side of the remaining rectangle so
+// tiles stay close to square instead of degenerating into slivers.
+function squarify(items, x, y, w, h) {
+  const rects = [];
+  const totalValue = items.reduce((s, i) => s + i.value, 0);
+  if (totalValue <= 0 || items.length === 0 || w <= 0 || h <= 0) return rects;
+
+  const scale = (w * h) / totalValue;
+  let remaining = items.map((i) => ({ ...i, area: i.value * scale }));
+  let rx = x, ry = y, rw = w, rh = h;
+
+  function worst(row, side) {
+    const sum = row.reduce((s, r) => s + r.area, 0);
+    const maxA = Math.max(...row.map((r) => r.area));
+    const minA = Math.min(...row.map((r) => r.area));
+    return Math.max((side * side * maxA) / (sum * sum), (sum * sum) / (side * side * minA));
+  }
+
+  while (remaining.length > 0) {
+    const side = Math.min(rw, rh);
+    let row = [remaining[0]];
+    let i = 1;
+    while (i < remaining.length) {
+      const nextRow = row.concat(remaining[i]);
+      if (worst(nextRow, side) <= worst(row, side)) {
+        row = nextRow;
+        i++;
+      } else {
+        break;
+      }
+    }
+
+    const rowAreaSum = row.reduce((s, r) => s + r.area, 0);
+    if (rw >= rh) {
+      const colWidth = rh > 0 ? rowAreaSum / rh : 0;
+      let cy = ry;
+      for (const item of row) {
+        const itemHeight = colWidth > 0 ? item.area / colWidth : 0;
+        rects.push({ ...item, x: rx, y: cy, w: colWidth, h: itemHeight });
+        cy += itemHeight;
+      }
+      rx += colWidth;
+      rw -= colWidth;
+    } else {
+      const rowHeight = rw > 0 ? rowAreaSum / rw : 0;
+      let cx = rx;
+      for (const item of row) {
+        const itemWidth = rowHeight > 0 ? item.area / rowHeight : 0;
+        rects.push({ ...item, x: cx, y: ry, w: itemWidth, h: rowHeight });
+        cx += itemWidth;
+      }
+      ry += rowHeight;
+      rh -= rowHeight;
+    }
+
+    remaining = remaining.slice(row.length);
+  }
+
+  return rects;
+}
+
+const TREEMAP_MAX_TILES = 40;
+
+function renderDiskTreemap(entries) {
+  diskTreemapEl.innerHTML = "";
+  const withSize = entries.filter((e) => e.size_bytes > 0);
+  if (withSize.length === 0) {
+    diskTreemapEl.innerHTML = '<div class="empty-state">Dossier vide (ou tous les éléments font 0 octet).</div>';
+    return;
+  }
+
+  const sorted = [...withSize].sort((a, b) => b.size_bytes - a.size_bytes);
+  let items = sorted;
+  if (sorted.length > TREEMAP_MAX_TILES) {
+    const head = sorted.slice(0, TREEMAP_MAX_TILES - 1);
+    const rest = sorted.slice(TREEMAP_MAX_TILES - 1);
+    const restSize = rest.reduce((s, e) => s + e.size_bytes, 0);
+    items = [
+      ...head,
+      {
+        name: `Autres (${rest.length} éléments)`,
+        path: null,
+        is_dir: false,
+        size_bytes: restSize,
+        isAggregate: true,
+      },
+    ];
+  }
+
+  const rect = diskTreemapEl.getBoundingClientRect();
+  const layout = squarify(
+    items.map((e) => ({ ...e, value: e.size_bytes })),
+    0,
+    0,
+    rect.width,
+    rect.height
+  );
+
+  for (const tile of layout) {
+    const el = document.createElement("div");
+    const bucket = tile.isAggregate ? "other" : diskBucket(tile);
+    el.className = "treemap-tile" + (tile.is_dir && !tile.isAggregate ? " clickable" : "");
+    el.style.left = `${tile.x}px`;
+    el.style.top = `${tile.y}px`;
+    el.style.width = `${Math.max(tile.w, 0)}px`;
+    el.style.height = `${Math.max(tile.h, 0)}px`;
+    el.style.background = `var(${BUCKET_COLOR_VAR[bucket]})`;
+    el.title = `${tile.name} — ${formatBytes(tile.size_bytes)}`;
+
+    if (tile.w > 36 && tile.h > 20) {
+      const label = document.createElement("div");
+      label.className = "tile-label";
+      label.innerHTML = `<span class="tl-name">${tile.is_dir ? "📁 " : ""}${tile.name}</span><span class="tl-size">${formatBytes(tile.size_bytes)}</span>`;
+      el.appendChild(label);
+    }
+
+    if (tile.is_dir && !tile.isAggregate) {
+      el.addEventListener("click", () => {
+        diskHistory.push(tile.path);
+        loadDiskUsage(tile.path);
+      });
+    }
+
+    diskTreemapEl.appendChild(el);
+  }
+}
+
+let resizeRaf = null;
+window.addEventListener("resize", () => {
+  if (diskView !== "treemap" || currentDiskEntries.length === 0) return;
+  cancelAnimationFrame(resizeRaf);
+  resizeRaf = requestAnimationFrame(() => renderDiskTreemap(currentDiskEntries));
+});
+
+// ---------- Démarrage ----------
+const loginItemsListEl = document.getElementById("login-items-list");
+const loginItemsResultEl = document.getElementById("login-items-result");
+const loginItemsRefreshBtn = document.getElementById("login-items-refresh");
+const launchAgentsListEl = document.getElementById("launch-agents-list");
+const launchAgentsResultEl = document.getElementById("launch-agents-result");
+const launchAgentsRefreshBtn = document.getElementById("launch-agents-refresh");
+let startupLoaded = false;
+
+async function loadLoginItems() {
+  loginItemsResultEl.textContent = "";
+  loginItemsListEl.innerHTML = '<div class="empty-state">Chargement…</div>';
+  try {
+    const items = await invoke("list_login_items");
+    renderLoginItems(items);
+  } catch (e) {
+    loginItemsListEl.innerHTML = "";
+    loginItemsResultEl.textContent = e;
+  }
+}
+
+function renderLoginItems(items) {
+  loginItemsListEl.innerHTML = "";
+  if (items.length === 0) {
+    loginItemsListEl.innerHTML = '<div class="empty-state">Aucune application au démarrage.</div>';
+    return;
+  }
+  items.forEach((item) => {
+    const row = document.createElement("div");
+    row.className = "list-item";
+    row.innerHTML = `
+      <div class="meta">
+        <div class="name">${item.name}</div>
+        <div class="sub">${item.path || ""}</div>
+      </div>
+      <button class="btn-text-danger">Retirer</button>
+    `;
+    row.querySelector("button").addEventListener("click", async (ev) => {
+      if (!confirm(`Retirer « ${item.name} » du démarrage ? Cette action n'est pas réversible depuis Macadam.`)) {
+        return;
+      }
+      const btn = ev.target;
+      btn.disabled = true;
+      btn.textContent = "…";
+      try {
+        await invoke("remove_login_item", { name: item.name });
+        await loadLoginItems();
+      } catch (e) {
+        loginItemsResultEl.textContent = `Erreur : ${e}`;
+        btn.disabled = false;
+        btn.textContent = "Retirer";
+      }
+    });
+    loginItemsListEl.appendChild(row);
+  });
+}
+
+async function loadLaunchAgents() {
+  launchAgentsResultEl.textContent = "";
+  launchAgentsListEl.innerHTML = '<div class="empty-state">Chargement…</div>';
+  try {
+    const agents = await invoke("list_launch_agents");
+    renderLaunchAgents(agents);
+  } catch (e) {
+    launchAgentsListEl.innerHTML = "";
+    launchAgentsResultEl.textContent = `Erreur : ${e}`;
+  }
+}
+
+function renderLaunchAgents(agents) {
+  launchAgentsListEl.innerHTML = "";
+  if (agents.length === 0) {
+    launchAgentsListEl.innerHTML = '<div class="empty-state">Aucun agent en arrière-plan.</div>';
+    return;
+  }
+  agents.forEach((agent) => {
+    const row = document.createElement("div");
+    row.className = "list-item";
+    const isSystem = agent.scope === "system";
+    row.innerHTML = `
+      <div class="meta">
+        <div class="name">${agent.label}</div>
+        <div class="sub">${agent.path}</div>
+      </div>
+      ${isSystem ? '<span class="badge">Système · lecture seule</span>' : ""}
+      <label class="switch">
+        <input type="checkbox" ${agent.enabled ? "checked" : ""} ${isSystem ? "disabled" : ""} />
+        <span class="slider"></span>
+      </label>
+    `;
+    if (!isSystem) {
+      const checkbox = row.querySelector("input");
+      checkbox.addEventListener("change", async () => {
+        const enable = checkbox.checked;
+        checkbox.disabled = true;
+        try {
+          await invoke("toggle_launch_agent", { path: agent.path, enable });
+          await loadLaunchAgents();
+        } catch (e) {
+          launchAgentsResultEl.textContent = `Erreur : ${e}`;
+          checkbox.checked = !enable;
+          checkbox.disabled = false;
+        }
+      });
+    }
+    launchAgentsListEl.appendChild(row);
+  });
+}
+
+loginItemsRefreshBtn.addEventListener("click", () =>
+  withBusy(loginItemsRefreshBtn, "…", loadLoginItems)
+);
+launchAgentsRefreshBtn.addEventListener("click", () =>
+  withBusy(launchAgentsRefreshBtn, "…", loadLaunchAgents)
+);
+
+// Lazy-load on first visit only — listing login items triggers a one-time
+// macOS "control System Events" permission prompt, no reason to show that
+// before the user has even opened this tab.
+document.querySelector('.tab[data-tab="startup"]').addEventListener("click", () => {
+  if (startupLoaded) return;
+  startupLoaded = true;
+  loadLoginItems();
+  loadLaunchAgents();
+});
+
+// ---------- Applications inutilisées ----------
+const appsScanBtn = document.getElementById("apps-scan");
+const appsListEl = document.getElementById("apps-list");
+const appsResultEl = document.getElementById("apps-result");
+
+function formatLastUsed(days) {
+  if (days === null || days === undefined) return "Jamais ouvert";
+  if (days === 0) return "Aujourd'hui";
+  if (days === 1) return "Hier";
+  if (days < 30) return `Il y a ${days} jours`;
+  if (days < 365) return `Il y a ${Math.round(days / 30)} mois`;
+  return `Il y a ${(days / 365).toFixed(1)} ans`;
+}
+
+appsScanBtn.addEventListener("click", () => withBusy(appsScanBtn, "Scan en cours…", appsScan));
+
+async function appsScan() {
+  appsResultEl.textContent = "";
+  appsListEl.innerHTML = '<div class="empty-state">Scan en cours…</div>';
+  try {
+    const apps = await invoke("list_apps");
+    renderApps(apps);
+    setStatus(`${apps.length} application(s) trouvée(s).`);
+  } catch (e) {
+    appsListEl.innerHTML = "";
+    appsResultEl.textContent = `Erreur : ${e}`;
+  }
+}
+
+function renderApps(apps) {
+  appsListEl.innerHTML = "";
+  if (apps.length === 0) {
+    appsListEl.innerHTML = '<div class="empty-state">Aucune application trouvée.</div>';
+    return;
+  }
+  apps.forEach((app) => {
+    const row = document.createElement("div");
+    row.className = "list-item";
+    row.innerHTML = `
+      <div class="meta">
+        <div class="name">${app.name}</div>
+        <div class="sub">${formatLastUsed(app.days_since_used)} · ${formatBytes(app.size_bytes)}</div>
+      </div>
+      <button class="btn-text-danger">Supprimer</button>
+    `;
+    row.querySelector("button").addEventListener("click", async (ev) => {
+      const btn = ev.target;
+      btn.disabled = true;
+      btn.textContent = "…";
+      try {
+        await invoke("trash_app", { path: app.path });
+        row.remove();
+        setStatus(`« ${app.name} » envoyée à la Corbeille.`);
+      } catch (e) {
+        appsResultEl.textContent = `Erreur : ${e}`;
+        btn.disabled = false;
+        btn.textContent = "Supprimer";
+      }
+    });
+    appsListEl.appendChild(row);
   });
 }
