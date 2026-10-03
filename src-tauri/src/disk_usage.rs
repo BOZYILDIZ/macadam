@@ -12,11 +12,11 @@ pub struct DiskEntry {
 }
 
 /// Lists the immediate children of `folder` with their total size
-/// (recursive for subdirectories), sorted largest first. One level at a
-/// time keeps this fast enough to call again as the user drills down.
-#[tauri::command]
-pub fn analyze_disk_usage(folder: String) -> Result<Vec<DiskEntry>, String> {
-    let dir = PathBuf::from(&folder);
+/// (recursive for subdirectories), sorted largest first. Shared by the
+/// `analyze_disk_usage` command and the growth-history feature so both
+/// read the filesystem the same way.
+pub fn scan_folder(folder: &str) -> Result<Vec<DiskEntry>, String> {
+    let dir = PathBuf::from(folder);
     if !dir.exists() {
         return Err(format!("Le dossier {} n'existe pas", folder));
     }
@@ -44,4 +44,11 @@ pub fn analyze_disk_usage(folder: String) -> Result<Vec<DiskEntry>, String> {
 
     results.sort_by(|a, b| b.size_bytes.cmp(&a.size_bytes));
     Ok(results)
+}
+
+/// One level at a time keeps this fast enough to call again as the user
+/// drills down.
+#[tauri::command]
+pub fn analyze_disk_usage(folder: String) -> Result<Vec<DiskEntry>, String> {
+    scan_folder(&folder)
 }

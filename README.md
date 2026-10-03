@@ -1,6 +1,6 @@
 # Macadam
 
-![version](https://img.shields.io/badge/version-0.2.0-0a84ff)
+![version](https://img.shields.io/badge/version-0.3.0-0a84ff)
 
 Macadam est une application open source pour **nettoyer et organiser ton Mac**, sans jamais rien supprimer définitivement : tout passe par la Corbeille.
 
@@ -10,8 +10,8 @@ Construite avec [Tauri](https://tauri.app/) (Rust + interface web légère) — 
 
 - **Rangement de fichiers** — trie les fichiers d'un dossier (ex: `Téléchargements`) dans des sous-dossiers par type : Images, PDF, Documents, Tableurs, Archives, Installateurs, Audio, Vidéos, Code, Autres.
 - **Nettoyage de caches** — scanne les emplacements de cache courants (`~/Library/Caches`, `~/Library/Logs`, Xcode DerivedData, cache npm, etc.) et libère l'espace qu'ils occupent.
-- **Détection de doublons** — trouve les fichiers identiques (par contenu, via hash Blake3) dans un dossier, récursivement.
-- **Analyse d'espace disque** — treemap interactif (avec vue liste alternative) pour repérer d'un coup d'œil ce qui prend le plus de place, dossier par dossier.
+- **Détection de doublons** — trouve les fichiers identiques (par contenu, via hash Blake3) dans un dossier, récursivement. Au choix : les supprimer, ou les **fusionner via un clone APFS** (`clonefile`) — les deux fichiers restent intacts et utilisables, mais partagent le même espace disque tant qu'aucun n'est modifié. Zéro risque de perte de données.
+- **Analyse d'espace disque** — treemap interactif (+ vue liste), et une vue **Évolution** en graphique 3D qui montre ce qui a grossi ou rétréci depuis ta dernière visite (comparé à ~7 jours en arrière), avec historique conservé localement.
 - **Applications au démarrage** — gère les Login Items classiques et les LaunchAgents (processus d'arrière-plan) pour accélérer l'ouverture de session.
 - **Applications inutilisées** — repère les apps de `/Applications` jamais ouvertes ou ouvertes depuis longtemps (date fournie par Spotlight/Launch Services), triées des moins utilisées aux plus utilisées.
 
@@ -47,6 +47,11 @@ Macadam est open source et les contributions sont les bienvenues ! Tu peux :
 Avant de soumettre une PR, vérifie que `cargo check` passe côté backend et que l'app se lance correctement avec `npm run dev`. Pas besoin d'être expert Rust ou Tauri pour contribuer — les petites améliorations (UI, traductions, nouvelles catégories de tri, idées de fonctionnalités) sont tout aussi bienvenues que les grosses.
 
 ## Changelog
+
+### v0.3.0
+- **Nouveau :** fusion de doublons par clone APFS (`clonefile`) — alternative à la suppression : les deux fichiers restent pleinement fonctionnels à leurs deux emplacements, mais partagent les mêmes blocs disque tant qu'aucun n'est modifié. Fonctionne uniquement sur un même volume APFS.
+- **Nouveau :** vue "Évolution" dans l'onglet Espace disque — graphique 3D (CSS, pas de dépendance) montrant ce qui a grossi/rétréci depuis la dernière comparaison disponible (~7 jours), avec vue tableau alternative. Historique stocké localement dans `~/Library/Application Support/Macadam/history.json`, purgé au-delà de 90 jours.
+- Releases GitHub désormais taguées (`git tag vX.Y.Z`) avec changelog et binaire `.dmg` attachés.
 
 ### v0.2.0
 - **Nouveau :** analyse d'espace disque en treemap (en plus de la liste), avec palette de couleurs validée accessibilité (daltonisme, contraste).

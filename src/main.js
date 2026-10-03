@@ -260,18 +260,43 @@ function renderDupGroups(groups) {
       row.className = "list-item";
       // Keep the first occurrence unchecked by default (the one to preserve).
       const checkedAttr = pi === 0 ? "" : "checked";
+      const keepAttr = pi === 0 ? "checked" : "";
       row.innerHTML = `
+        <input type="radio" name="keep-group-${gi}" class="keep-radio" data-path="${p}" title="Garder comme original" ${keepAttr} />
         <input type="checkbox" data-path="${p}" data-group="${gi}" ${checkedAttr} />
         <div class="meta"><div class="name">${p}</div></div>
       `;
       wrap.appendChild(row);
     });
+    const mergeRow = document.createElement("div");
+    mergeRow.className = "group-actions";
+    mergeRow.innerHTML = `<button class="btn btn-secondary btn-sm merge-btn">Fusionner ce groupe (clone APFS)</button>`;
+    mergeRow.querySelector("button").addEventListener("click", (ev) =>
+      withBusy(ev.target, "Fusion…", () => mergeGroup(wrap, group))
+    );
+    wrap.appendChild(mergeRow);
     dupListEl.appendChild(wrap);
   });
   updateDupDeleteState();
   dupListEl.querySelectorAll("input[type=checkbox]").forEach((cb) => {
     cb.addEventListener("change", updateDupDeleteState);
   });
+}
+
+async function mergeGroup(groupEl, group) {
+  const keepInput = groupEl.querySelector(".keep-radio:checked");
+  const keep = keepInput.dataset.path;
+  const duplicates = group.paths.filter((p) => p !== keep);
+  try {
+    const res = await invoke("clone_merge_files", { keep, duplicates });
+    dupResultEl.textContent = `${res.merged} fichier(s) fusionné(s), ${formatBytes(res.freed_bytes)} partagé(s) (clone APFS).` +
+      (res.errors.length ? `\n${res.errors.join("\n")}` : "");
+    setStatus("Fusion terminée.");
+    await dupScan();
+  } catch (e) {
+    dupResultEl.textContent = `Erreur : ${e}`;
+    setStatus("Erreur.");
+  }
 }
 
 function updateDupDeleteState() {
@@ -306,11 +331,19 @@ const diskPathEl = document.getElementById("disk-path");
 const diskPickBtn = document.getElementById("disk-pick");
 const diskListEl = document.getElementById("disk-list");
 const diskTreemapEl = document.getElementById("disk-treemap");
+const diskGrowthEl = document.getElementById("disk-growth");
+const diskLegendEl = document.getElementById("disk-legend");
 const diskBreadcrumbEl = document.getElementById("disk-breadcrumb");
 const diskViewToggle = document.getElementById("disk-view-toggle");
+const growth3dEl = document.getElementById("growth-3d");
+const growthTableEl = document.getElementById("growth-table");
+const growthStatusEl = document.getElementById("growth-status");
+const growthViewToggle = document.getElementById("growth-view-toggle");
 let diskHistory = [];
 let diskView = "treemap";
+let growthSubView = "3d";
 let currentDiskEntries = [];
+let growthLoadedFor = null;
 
 // Three validated categorical slots (see dataviz skill) plus a neutral,
 // non-series color for folders — kept in sync with the Rangement
@@ -340,7 +373,19 @@ diskViewToggle.querySelectorAll("button").forEach((btn) => {
     diskView = btn.dataset.view;
     diskListEl.hidden = diskView !== "list";
     diskTreemapEl.hidden = diskView !== "treemap";
+    diskGrowthEl.hidden = diskView !== "growth";
+    diskLegendEl.hidden = diskView === "growth";
     renderCurrentView();
+  });
+});
+
+growthViewToggle.querySelectorAll("button").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    growthViewToggle.querySelectorAll("button").forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    growthSubView = btn.dataset.view;
+    growth3dEl.hidden = growthSubView !== "3d";
+    growthTableEl.hidden = growthSubView !== "table";
   });
 });
 
@@ -371,9 +416,86 @@ async function loadDiskUsage(folder) {
 function renderCurrentView() {
   if (diskView === "treemap") {
     renderDiskTreemap(currentDiskEntries);
-  } else {
+  } else if (diskView === "list") {
     renderDiskList(currentDiskEntries);
+  } else if (diskView === "growth") {
+    const folder = diskHistory[diskHistory.length - 1];
+    if (growthLoadedFor !== folder) {
+      loadGrowth(folder);
+    }
   }
+}
+
+async function loadGrowth(folder) {
+  growthLoadedFor = folder;
+  growthStatusEl.textContent = "Analyse en cours…";
+  growth3dEl.innerHTML = "";
+  growthTableEl.innerHTML = "";
+  try {
+    const report = await invoke("get_growth", { folder });
+    renderGrowth(report);
+  } catch (e) {
+    growthStatusEl.textContent = `Erreur : ${e}`;
+  }
+}
+
+function renderGrowth(report) {
+  if (!report.has_baseline) {
+    growthStatusEl.textContent = "Pas encore d'historique pour ce dossier — un premier instantané vient d'être pris. Repasse dans quelques jours pour voir son évolution.";
+    growth3dEl.innerHTML = "";
+    growthTableEl.innerHTML = "";
+    return;
+  }
+
+  growthStatusEl.textContent = `Comparé à il y a ${report.baseline_age_days} jour(s).`;
+
+  if (report.changes.length === 0) {
+    growth3dEl.innerHTML = '<div class="empty-state">Rien n\'a changé de façon notable depuis la dernière comparaison.</div>';
+    growthTableEl.innerHTML = "";
+    return;
+  }
+
+  const maxAbs = Math.max(...report.changes.map((c) => Math.abs(c.delta_bytes)), 1);
+  const scene = document.createElement("div");
+  scene.className = "scene3d";
+
+  report.changes.forEach((c) => {
+    const grew = c.delta_bytes > 0;
+    const heightPx = Math.max(8, Math.round((Math.abs(c.delta_bytes) / maxAbs) * 180));
+    const col = document.createElement("div");
+    col.className = `bar3d-col ${grew ? "grow" : "shrink"}`;
+    const sign = grew ? "+" : "−";
+    col.innerHTML = `
+      <div class="bar3d ${grew ? "grow" : "shrink"}" style="height:${heightPx}px" title="${c.name} : ${sign}${formatBytes(Math.abs(c.delta_bytes))}">
+        <div class="bar3d-top"></div>
+        <div class="bar3d-side"></div>
+        <div class="bar3d-front"></div>
+      </div>
+      <div class="bar3d-label">
+        <span class="bl-name">${c.is_dir ? "📁" : "📄"} ${c.name}</span>
+        <span class="bl-delta">${sign}${formatBytes(Math.abs(c.delta_bytes))}</span>
+      </div>
+    `;
+    scene.appendChild(col);
+  });
+
+  growth3dEl.innerHTML = "";
+  growth3dEl.appendChild(scene);
+
+  growthTableEl.innerHTML = "";
+  report.changes.forEach((c) => {
+    const grew = c.delta_bytes > 0;
+    const row = document.createElement("div");
+    row.className = "list-item";
+    row.innerHTML = `
+      <div class="meta">
+        <div class="name">${c.is_dir ? "📁" : "📄"} ${c.name}</div>
+        <div class="sub">${formatBytes(c.past_bytes)} → ${formatBytes(c.current_bytes)}</div>
+      </div>
+      <div class="size" style="color:var(${grew ? "--viz-grow" : "--viz-shrink"})">${grew ? "+" : "−"}${formatBytes(Math.abs(c.delta_bytes))}</div>
+    `;
+    growthTableEl.appendChild(row);
+  });
 }
 
 function renderBreadcrumb() {

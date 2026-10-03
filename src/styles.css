@@ -16,6 +16,14 @@
   --viz-media: #2a78d6;
   --viz-docs: #eb6834;
   --viz-other: #1baf7a;
+  /* Diverging pair (growth chart): blue = grew, red = shrank, each with a
+     lighter/darker step from the validated ramps for the 3D bar shading. */
+  --viz-grow: #2a78d6;
+  --viz-grow-top: #86b6ef;
+  --viz-grow-side: #184f95;
+  --viz-shrink: #e34948;
+  --viz-shrink-top: #f0a09f;
+  --viz-shrink-side: #a93332;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
 }
 
@@ -31,6 +39,12 @@
     --viz-media: #3987e5;
     --viz-docs: #d95926;
     --viz-other: #199e70;
+    --viz-grow: #3987e5;
+    --viz-grow-top: #6da7ec;
+    --viz-grow-side: #1c5cab;
+    --viz-shrink: #e66767;
+    --viz-shrink-top: #ef9f9f;
+    --viz-shrink-side: #b23332;
   }
 }
 
@@ -329,6 +343,15 @@ body {
   margin-bottom: 8px;
 }
 
+.keep-radio {
+  flex-shrink: 0;
+}
+
+.group-actions {
+  margin-top: 8px;
+  text-align: right;
+}
+
 .dir-row {
   cursor: pointer;
 }
@@ -456,6 +479,110 @@ body {
 .btn-text-danger:hover {
   text-decoration: underline;
 }
+
+/* ---------- Growth chart (3D) ---------- */
+
+.growth-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.growth-header .hint {
+  margin: 0;
+  flex: 1;
+}
+
+.scene3d-wrap {
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: linear-gradient(to bottom, var(--surface) 0%, var(--surface) 70%, var(--surface-alt) 70%, var(--surface-alt) 100%);
+  padding: 30px 24px 0;
+}
+
+.scene3d {
+  display: flex;
+  align-items: flex-end;
+  gap: 30px;
+  height: 200px;
+  min-width: min-content;
+  padding-bottom: 0;
+}
+
+.bar3d-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  width: 64px;
+}
+
+.bar3d {
+  position: relative;
+  width: 36px;
+  margin-right: 10px;
+}
+
+.bar3d-front {
+  position: absolute;
+  inset: 0;
+  border-radius: 3px 3px 0 0;
+}
+
+.bar3d-top {
+  position: absolute;
+  top: -9px;
+  left: 0;
+  width: 100%;
+  height: 18px;
+  transform: skewX(-45deg);
+  transform-origin: bottom left;
+}
+
+.bar3d-side {
+  position: absolute;
+  top: 0;
+  right: -9px;
+  width: 18px;
+  height: 100%;
+  transform: skewY(-45deg);
+  transform-origin: top left;
+}
+
+.bar3d.grow .bar3d-front { background: var(--viz-grow); }
+.bar3d.grow .bar3d-top { background: var(--viz-grow-top); }
+.bar3d.grow .bar3d-side { background: var(--viz-grow-side); }
+.bar3d.shrink .bar3d-front { background: var(--viz-shrink); }
+.bar3d.shrink .bar3d-top { background: var(--viz-shrink-top); }
+.bar3d.shrink .bar3d-side { background: var(--viz-shrink-side); }
+
+.bar3d-label {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 11px;
+  max-width: 72px;
+}
+
+.bar3d-label .bl-name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-dim);
+}
+
+.bar3d-label .bl-delta {
+  display: block;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.bar3d-col.grow .bl-delta { color: var(--viz-grow); }
+.bar3d-col.shrink .bl-delta { color: var(--viz-shrink); }
 
 .empty-state {
   color: var(--text-dim);

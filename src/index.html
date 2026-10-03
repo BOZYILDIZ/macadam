@@ -91,6 +91,8 @@
             <button class="btn btn-danger" id="dup-delete" disabled>Supprimer la sélection</button>
           </div>
 
+          <p class="hint">Dans chaque groupe, ⦿ marque le fichier à garder comme original. "Fusionner" remplace les autres copies par des clones APFS : les deux fichiers restent utilisables indépendamment, mais partagent le même espace disque tant qu'aucun n'est modifié — rien n'est supprimé. Fonctionne uniquement si tous les fichiers sont sur le même volume APFS.</p>
+
           <div class="list" id="dup-list"></div>
           <div class="result" id="dup-result"></div>
         </section>
@@ -112,9 +114,10 @@
           <div class="view-toggle" id="disk-view-toggle">
             <button class="active" data-view="treemap">Treemap</button>
             <button data-view="list">Liste</button>
+            <button data-view="growth">Évolution</button>
           </div>
 
-          <div class="viz-legend">
+          <div class="viz-legend" id="disk-legend">
             <span><i style="background:var(--viz-folder)"></i>Dossier</span>
             <span><i style="background:var(--viz-media)"></i>Médias (images, audio, vidéo)</span>
             <span><i style="background:var(--viz-docs)"></i>Documents (PDF, texte, tableurs, code)</span>
@@ -123,6 +126,18 @@
 
           <div class="treemap" id="disk-treemap"></div>
           <div class="list" id="disk-list" hidden></div>
+
+          <div id="disk-growth" hidden>
+            <div class="growth-header">
+              <p class="hint" id="growth-status"></p>
+              <div class="view-toggle" id="growth-view-toggle">
+                <button class="active" data-view="3d">Graphique 3D</button>
+                <button data-view="table">Tableau</button>
+              </div>
+            </div>
+            <div class="scene3d-wrap" id="growth-3d"></div>
+            <div class="list" id="growth-table" hidden></div>
+          </div>
         </section>
 
         <!-- DÉMARRAGE -->
