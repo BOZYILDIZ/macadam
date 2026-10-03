@@ -17,6 +17,7 @@ fn dir_size(path: &PathBuf) -> u64 {
     }
     walkdir::WalkDir::new(path)
         .into_iter()
+        .filter_entry(|e| !e.file_type().is_dir() || is_accessible(e.path()))
         .filter_map(|e| e.ok())
         .filter(|e| e.file_type().is_file())
         .filter_map(|e| e.metadata().ok())
@@ -53,8 +54,21 @@ fn known_locations() -> Vec<(&'static str, &'static str, PathBuf)> {
             home.join(".npm/_cacache"),
         ),
         ("generic_cache", "Cache générique (~/.cache)", home.join(".cache")),
-        ("trash", "Corbeille (~/.Trash)", home.join(".Trash")),
     ]
+}
+
+/// Some subfolders under locations like ~/Library/Caches belong to macOS
+/// system services (Safari, CloudKit, HomeKit, Find My…) and are
+/// TCC-protected: a normal app can't read or trash them, and trying can
+/// stall waiting on a permission check that never resolves. We probe
+/// read access up front and skip these entirely rather than attempting
+/// anything destructive on them.
+fn is_accessible(path: &std::path::Path) -> bool {
+    if path.is_dir() {
+        fs::read_dir(path).is_ok()
+    } else {
+        fs::metadata(path).is_ok()
+    }
 }
 
 fn dirs_home() -> PathBuf {
@@ -84,15 +98,20 @@ pub fn scan_caches() -> Vec<CacheEntry> {
 #[derive(Serialize)]
 pub struct CleanResult {
     pub freed_bytes: u64,
+    pub skipped: Vec<String>,
     pub errors: Vec<String>,
 }
 
 /// Empties the contents of each given cache directory (moving every child
 /// entry to the Trash so the action stays undoable) without removing the
 /// directory itself, since some apps expect it to keep existing.
+/// Entries we can't fully read (TCC-protected system caches) are skipped
+/// up front instead of being handed to `trash::delete`, which can hang
+/// indefinitely on them.
 #[tauri::command]
 pub fn clean_caches(paths: Vec<String>) -> CleanResult {
     let mut freed_bytes = 0u64;
+    let mut skipped = Vec::new();
     let mut errors = Vec::new();
 
     for raw_path in paths {
@@ -109,26 +128,32 @@ pub fn clean_caches(paths: Vec<String>) -> CleanResult {
         };
         for entry in entries.flatten() {
             let path = entry.path();
+            let name = path
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_default();
+
+            if !is_accessible(&path) {
+                skipped.push(name);
+                continue;
+            }
+
             let size = if path.is_file() {
                 fs::metadata(&path).map(|m| m.len()).unwrap_or(0)
             } else {
-                walkdir::WalkDir::new(&path)
-                    .into_iter()
-                    .filter_map(|e| e.ok())
-                    .filter(|e| e.file_type().is_file())
-                    .filter_map(|e| e.metadata().ok())
-                    .map(|m| m.len())
-                    .sum()
+                dir_size(&path)
             };
+
             match trash::delete(&path) {
                 Ok(_) => freed_bytes += size,
-                Err(e) => errors.push(format!("{}: {}", path.display(), e)),
+                Err(e) => errors.push(format!("{}: {}", name, e)),
             }
         }
     }
 
     CleanResult {
         freed_bytes,
+        skipped,
         errors,
     }
 }

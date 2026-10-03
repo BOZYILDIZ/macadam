@@ -1,5 +1,7 @@
 # Macadam
 
+![version](https://img.shields.io/badge/version-0.1.1-0a84ff)
+
 Macadam est une application open source pour **nettoyer et organiser ton Mac**, sans jamais rien supprimer définitivement : tout passe par la Corbeille.
 
 Construite avec [Tauri](https://tauri.app/) (Rust + interface web légère) — binaire natif léger, pas de moteur Electron embarqué.
@@ -31,6 +33,17 @@ npm run build   # build l'app .app/.dmg
 
 - **Backend** : Rust (`src-tauri/`) — commandes Tauri pour le système de fichiers, le hashing et le déplacement vers la Corbeille.
 - **Frontend** : HTML/CSS/JS vanilla (`src/`) — aucune dépendance front, pas de framework.
+
+## Changelog
+
+### v0.1.1
+- Correction : le nettoyage de caches pouvait rester bloqué indéfiniment sur des dossiers système protégés par macOS (Safari, CloudKit, HomeKit, Find My…). Ces éléments sont maintenant détectés et ignorés automatiquement, avec un message clair listant ce qui a été sauté.
+- Ajout d'un retour visuel (bouton en état "en cours…") pendant les scans et nettoyages, pour éviter l'impression de blocage.
+- Nouvelle navigation en barre latérale avec icônes (au lieu d'onglets textuels en haut).
+- Le numéro de version s'affiche maintenant dans l'application (coin inférieur de la barre latérale).
+
+### v0.1.0
+- Première version : Rangement de fichiers, Nettoyage de caches, Détection de doublons, Analyse d'espace disque.
 
 ## Licence
 

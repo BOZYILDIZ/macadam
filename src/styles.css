@@ -39,57 +39,116 @@ body {
 
 .app {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   height: 100vh;
 }
 
-.topbar {
+.sidebar {
+  width: 72px;
+  flex-shrink: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 24px;
-  padding: 10px 16px;
+  gap: 10px;
+  padding: 16px 0 14px;
   background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
   -webkit-app-region: drag;
 }
 
-.brand {
+.sidebar-mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  margin-bottom: 8px;
+  background: linear-gradient(145deg, var(--accent), #5e5ce6);
+  color: #fff;
   font-weight: 700;
-  font-size: 14px;
-  letter-spacing: 0.2px;
-}
-
-.brand-mark {
-  color: var(--accent);
-  font-size: 10px;
-}
-
-.tabs {
-  display: flex;
-  gap: 4px;
+  font-size: 15px;
+  box-shadow: 0 4px 14px -4px rgba(10, 132, 255, 0.55);
   -webkit-app-region: no-drag;
 }
 
 .tab {
+  position: relative;
+  width: 46px;
+  height: 46px;
   border: none;
   background: transparent;
   color: var(--text-dim);
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 13px;
+  border-radius: 13px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-app-region: no-drag;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+
+.tab svg {
+  width: 21px;
+  height: 21px;
 }
 
 .tab:hover {
   background: var(--surface-alt);
+  color: var(--text);
+}
+
+.tab:active {
+  transform: scale(0.94);
 }
 
 .tab.active {
-  background: var(--accent);
-  color: var(--accent-contrast);
+  background: linear-gradient(145deg, var(--accent), #5e5ce6);
+  color: #fff;
+  box-shadow: 0 4px 14px -4px rgba(10, 132, 255, 0.55);
+}
+
+.tab::after {
+  content: attr(data-label);
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%) translateX(-4px);
+  background: #1d1d1f;
+  color: #fff;
+  padding: 5px 9px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  z-index: 20;
+}
+
+.tab:hover::after {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+.sidebar-spacer {
+  flex: 1;
+}
+
+.version {
+  color: var(--text-dim);
+  font-size: 10px;
+  font-weight: 500;
+  -webkit-app-region: no-drag;
+}
+
+.main-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
 }
 
 .content {

@@ -1,9 +1,32 @@
 const { invoke } = window.__TAURI__.core;
 const { open } = window.__TAURI__.dialog;
+const { getVersion } = window.__TAURI__.app;
 
 const statusbar = document.getElementById("statusbar");
 function setStatus(msg) {
   statusbar.textContent = msg;
+}
+
+getVersion()
+  .then((v) => {
+    document.getElementById("app-version").textContent = `v${v}`;
+  })
+  .catch(() => {});
+
+// Disables `button` and swaps its label to `busyLabel` while `fn` runs,
+// so a multi-second scan/clean can't look like a frozen click with no
+// feedback (the bug this app shipped with in v0.1.0).
+async function withBusy(button, busyLabel, fn) {
+  const originalLabel = button.textContent;
+  const wasDisabled = button.disabled;
+  button.disabled = true;
+  button.textContent = busyLabel;
+  try {
+    return await fn();
+  } finally {
+    button.textContent = originalLabel;
+    button.disabled = wasDisabled;
+  }
 }
 
 function formatBytes(bytes) {
@@ -46,7 +69,11 @@ organizePickBtn.addEventListener("click", async () => {
   organizeResultEl.textContent = "";
 });
 
-organizePreviewBtn.addEventListener("click", async () => {
+organizePreviewBtn.addEventListener("click", () =>
+  withBusy(organizePreviewBtn, "Analyse…", organizePreview)
+);
+
+async function organizePreview() {
   if (!organizeFolder) return;
   setStatus("Analyse du dossier…");
   try {
@@ -66,9 +93,13 @@ organizePreviewBtn.addEventListener("click", async () => {
     organizeResultEl.textContent = `Erreur : ${e}`;
     setStatus("Erreur.");
   }
-});
+}
 
-organizeRunBtn.addEventListener("click", async () => {
+organizeRunBtn.addEventListener("click", () =>
+  withBusy(organizeRunBtn, "Rangement…", organizeRun)
+);
+
+async function organizeRun() {
   if (!organizeFolder) return;
   setStatus("Rangement en cours…");
   try {
@@ -81,7 +112,7 @@ organizeRunBtn.addEventListener("click", async () => {
     organizeResultEl.textContent = `Erreur : ${e}`;
     setStatus("Erreur.");
   }
-});
+}
 
 // ---------- Nettoyage ----------
 const cacheScanBtn = document.getElementById("cache-scan");
@@ -90,18 +121,22 @@ const cacheListEl = document.getElementById("cache-list");
 const cacheResultEl = document.getElementById("cache-result");
 let cacheEntries = [];
 
-cacheScanBtn.addEventListener("click", async () => {
+cacheScanBtn.addEventListener("click", () => withBusy(cacheScanBtn, "Scan en cours…", cacheScan));
+
+async function cacheScan() {
   setStatus("Scan des caches…");
   cacheResultEl.textContent = "";
+  cacheListEl.innerHTML = '<div class="empty-state">Scan en cours…</div>';
   try {
     cacheEntries = await invoke("scan_caches");
     renderCacheList();
     setStatus("Scan terminé.");
   } catch (e) {
+    cacheListEl.innerHTML = "";
     cacheResultEl.textContent = `Erreur : ${e}`;
     setStatus("Erreur.");
   }
-});
+}
 
 function renderCacheList() {
   cacheListEl.innerHTML = "";
@@ -137,7 +172,11 @@ function updateCacheCleanState() {
   cacheCleanBtn.disabled = checked.length === 0;
 }
 
-cacheCleanBtn.addEventListener("click", async () => {
+cacheCleanBtn.addEventListener("click", () =>
+  withBusy(cacheCleanBtn, "Nettoyage…", cacheClean)
+);
+
+async function cacheClean() {
   const checked = [...cacheListEl.querySelectorAll("input[type=checkbox]:checked")].map(
     (cb) => cb.dataset.path
   );
@@ -145,15 +184,21 @@ cacheCleanBtn.addEventListener("click", async () => {
   setStatus("Nettoyage en cours…");
   try {
     const res = await invoke("clean_caches", { paths: checked });
-    cacheResultEl.textContent = `${formatBytes(res.freed_bytes)} libéré(s).` +
-      (res.errors.length ? `\n${res.errors.length} erreur(s).` : "");
+    const lines = [`${formatBytes(res.freed_bytes)} libéré(s), envoyé(s) à la Corbeille.`];
+    if (res.skipped.length) {
+      lines.push(`${res.skipped.length} élément(s) protégé(s) par macOS ignoré(s) : ${res.skipped.join(", ")}`);
+    }
+    if (res.errors.length) {
+      lines.push(`${res.errors.length} erreur(s) : ${res.errors.join(", ")}`);
+    }
+    cacheResultEl.textContent = lines.join("\n");
     setStatus("Nettoyage terminé.");
-    cacheScanBtn.click();
+    await cacheScan();
   } catch (e) {
     cacheResultEl.textContent = `Erreur : ${e}`;
     setStatus("Erreur.");
   }
-});
+}
 
 // ---------- Doublons ----------
 const dupPathEl = document.getElementById("dup-path");
@@ -175,7 +220,9 @@ dupPickBtn.addEventListener("click", async () => {
   dupDeleteBtn.disabled = true;
 });
 
-dupScanBtn.addEventListener("click", async () => {
+dupScanBtn.addEventListener("click", () => withBusy(dupScanBtn, "Recherche…", dupScan));
+
+async function dupScan() {
   if (!dupFolder) return;
   setStatus("Recherche des doublons… (peut prendre un moment)");
   dupResultEl.textContent = "";
@@ -189,7 +236,7 @@ dupScanBtn.addEventListener("click", async () => {
     dupResultEl.textContent = `Erreur : ${e}`;
     setStatus("Erreur.");
   }
-});
+}
 
 function renderDupGroups(groups) {
   dupListEl.innerHTML = "";
@@ -227,7 +274,11 @@ function updateDupDeleteState() {
   dupDeleteBtn.disabled = checked.length === 0;
 }
 
-dupDeleteBtn.addEventListener("click", async () => {
+dupDeleteBtn.addEventListener("click", () =>
+  withBusy(dupDeleteBtn, "Suppression…", dupDelete)
+);
+
+async function dupDelete() {
   const checked = [...dupListEl.querySelectorAll("input[type=checkbox]:checked")].map(
     (cb) => cb.dataset.path
   );
@@ -238,12 +289,12 @@ dupDeleteBtn.addEventListener("click", async () => {
     dupResultEl.textContent = `${formatBytes(res.freed_bytes)} libéré(s), envoyé(s) à la Corbeille.` +
       (res.errors.length ? `\n${res.errors.length} erreur(s).` : "");
     setStatus("Suppression terminée.");
-    dupScanBtn.click();
+    await dupScan();
   } catch (e) {
     dupResultEl.textContent = `Erreur : ${e}`;
     setStatus("Erreur.");
   }
-});
+}
 
 // ---------- Espace disque ----------
 const diskPathEl = document.getElementById("disk-path");

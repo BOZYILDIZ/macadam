@@ -10,19 +10,27 @@
 
   <body>
     <div class="app">
-      <header class="topbar">
-        <div class="brand">
-          <span class="brand-mark">●</span>
-          <span class="brand-name">Macadam</span>
-        </div>
-        <nav class="tabs" id="tabs">
-          <button class="tab active" data-tab="organize">Rangement</button>
-          <button class="tab" data-tab="cache">Nettoyage</button>
-          <button class="tab" data-tab="duplicates">Doublons</button>
-          <button class="tab" data-tab="disk">Espace disque</button>
-        </nav>
-      </header>
+      <nav class="sidebar" id="tabs">
+        <div class="sidebar-mark">M</div>
 
+        <button class="tab active" data-tab="organize" data-label="Rangement">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/><path d="M12 12v4"/><path d="M10 14h4"/></svg>
+        </button>
+        <button class="tab" data-tab="cache" data-label="Nettoyage">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1.2 11a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8L5 8z"/><path d="M9 8V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v3"/><path d="M10 12v5"/><path d="M14 12v5"/></svg>
+        </button>
+        <button class="tab" data-tab="duplicates" data-label="Doublons">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2.5"/><path d="M6.5 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1.5"/></svg>
+        </button>
+        <button class="tab" data-tab="disk" data-label="Espace disque">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l6.4 3.7"/></svg>
+        </button>
+
+        <div class="sidebar-spacer"></div>
+        <div class="version" id="app-version"></div>
+      </nav>
+
+      <div class="main-col">
       <main class="content">
         <!-- RANGEMENT -->
         <section class="panel active" id="panel-organize">
@@ -99,6 +107,7 @@
       </main>
 
       <footer class="statusbar" id="statusbar">Prêt.</footer>
+      </div>
     </div>
   </body>
 </html>
