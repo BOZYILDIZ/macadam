@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="styles.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Macadam</title>
+    <script type="module" src="/main.js" defer></script>
+  </head>
+
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark">●</span>
+          <span class="brand-name">Macadam</span>
+        </div>
+        <nav class="tabs" id="tabs">
+          <button class="tab active" data-tab="organize">Rangement</button>
+          <button class="tab" data-tab="cache">Nettoyage</button>
+          <button class="tab" data-tab="duplicates">Doublons</button>
+          <button class="tab" data-tab="disk">Espace disque</button>
+        </nav>
+      </header>
+
+      <main class="content">
+        <!-- RANGEMENT -->
+        <section class="panel active" id="panel-organize">
+          <div class="panel-header">
+            <h1>Rangement de fichiers</h1>
+            <p class="subtitle">Trie les fichiers d'un dossier dans des sous-dossiers par type (Images, PDF, Documents…).</p>
+          </div>
+
+          <div class="folder-picker">
+            <input type="text" id="organize-path" placeholder="Aucun dossier sélectionné" readonly />
+            <button class="btn" id="organize-pick">Choisir un dossier</button>
+          </div>
+
+          <div class="actions">
+            <button class="btn btn-secondary" id="organize-preview" disabled>Aperçu</button>
+            <button class="btn btn-primary" id="organize-run" disabled>Ranger les fichiers</button>
+          </div>
+
+          <div class="result" id="organize-result"></div>
+        </section>
+
+        <!-- NETTOYAGE -->
+        <section class="panel" id="panel-cache">
+          <div class="panel-header">
+            <h1>Nettoyage de caches</h1>
+            <p class="subtitle">Scanne les emplacements de cache courants et libère de l'espace. Les fichiers vont à la Corbeille, jamais supprimés définitivement.</p>
+          </div>
+
+          <div class="actions">
+            <button class="btn btn-primary" id="cache-scan">Scanner</button>
+            <button class="btn btn-danger" id="cache-clean" disabled>Nettoyer la sélection</button>
+          </div>
+
+          <div class="list" id="cache-list"></div>
+          <div class="result" id="cache-result"></div>
+        </section>
+
+        <!-- DOUBLONS -->
+        <section class="panel" id="panel-duplicates">
+          <div class="panel-header">
+            <h1>Détection de doublons</h1>
+            <p class="subtitle">Trouve les fichiers identiques (par contenu) dans un dossier, récursivement.</p>
+          </div>
+
+          <div class="folder-picker">
+            <input type="text" id="dup-path" placeholder="Aucun dossier sélectionné" readonly />
+            <button class="btn" id="dup-pick">Choisir un dossier</button>
+          </div>
+
+          <div class="actions">
+            <button class="btn btn-primary" id="dup-scan" disabled>Rechercher les doublons</button>
+            <button class="btn btn-danger" id="dup-delete" disabled>Supprimer la sélection</button>
+          </div>
+
+          <div class="list" id="dup-list"></div>
+          <div class="result" id="dup-result"></div>
+        </section>
+
+        <!-- ESPACE DISQUE -->
+        <section class="panel" id="panel-disk">
+          <div class="panel-header">
+            <h1>Analyse d'espace disque</h1>
+            <p class="subtitle">Visualise ce qui prend le plus de place. Clique un dossier pour l'explorer.</p>
+          </div>
+
+          <div class="folder-picker">
+            <input type="text" id="disk-path" placeholder="Aucun dossier sélectionné" readonly />
+            <button class="btn" id="disk-pick">Choisir un dossier</button>
+          </div>
+
+          <div class="breadcrumb" id="disk-breadcrumb"></div>
+          <div class="list" id="disk-list"></div>
+        </section>
+      </main>
+
+      <footer class="statusbar" id="statusbar">Prêt.</footer>
+    </div>
+  </body>
+</html>
